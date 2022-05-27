@@ -1,63 +1,60 @@
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/connection');
+const bcrypt = require('bcrypt');
 
 // create user model
-class User extends Model {}
+class User extends Model {
+    checkPassword(loginPw) {
+        return bcrypt.compareSync(loginPw, this.password);
+    }
+}
 
 // define table columns and configuration
 User.init(
     {
-        // define id column
-        id: {
-            // special sequelize datatypes object
-            type: DataTypes.INTEGER,
-            // not null
-            allowNull: false,
-            // primary key
-            primaryKey: true,
-            // auto increment
-            autoIncrement: true
-        },
-        // define username column
-        username: {
-            type: DataTypes.STRING,
-            allowNull: false
-        },
-        // define email column
-        email: {
-            type: DataTypes.STRING,
-            allowNull: false,
-            // no duplicates
-            unique: true,
-            // if allowNull false, run data thru validators
-            validate: {
-                isEmail: true
-            }
-        },
-        // define password column
-        password: {
-            type: DataTypes.STRING,
-            allowNull: false,
-            validate: {
-                // password must be at least 4 characters long
-                len: [4]
-            }
+      id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        primaryKey: true,
+        autoIncrement: true
+      },
+      username: {
+        type: DataTypes.STRING,
+        allowNull: false
+      },
+      email: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+        validate: {
+          isEmail: true
         }
+      },
+      password: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+          len: [4]
+        }
+      }
     },
     {
-        // TABLE CONFIGURATION OPTIONS
-
-        // pass in imported sequeliize connection
-        sequelize,
-        // dont automatically create timestamp fields
-        timestamps: false,
-        // dont pluralize name of db table
-        freezeTableName: true,
-        // use underscores instead of camel-casing
-        underscored: true,
-        // model name stays lower casein db
-        modelName: 'user'
+      hooks: {
+          async beforeCreate(newUserData) {
+              newUserData.password = await bcrypt.hash(newUserData.password, 10);
+              return newUserData;
+          },
+          async beforeUpdate(updatedUserData) {
+              updatedUserData.password = await bcrypt.hash(updatedUserData.password, 10);
+              return updatedUserData;
+          }
+      },
+      sequelize,
+      timestamps: false,
+      freezeTableName: true,
+      underscored: true,
+      modelName: 'user'
     }
-);
+  );
 
 module.exports = User;
